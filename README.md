@@ -173,12 +173,25 @@ Open the VEXcode VR environment in a web browser. Select a maze playground and p
 ## References
 
 VEX Robotics. (2024). VEXcode VR Documentation. https://education.vex.com/stemlabs/cs/cs-level-1-vexcode-vr-python
+                                                https://education.vex.com/stemlabs/vr/activities
 
-GeeksforGeeks. (2023). Breadth First Search Algorithm. https://www.geeksforgeeks.org/
+GeeksforGeeks. (2023). *Breadth First Search (BFS) for a Graph*.  
+https://www.geeksforgeeks.org/breadth-first-search-or-bfs-for-a-graph/
 
-Cormen, T. H. et al. Introduction to Algorithms. MIT Press.
+Cormen, T. H., Leiserson, C. E., Rivest, R. L., & Stein, C. (2009). *Introduction to Algorithms*. MIT Press.
 
-Russell, S. & Norvig, P. Artificial Intelligence: A Modern Approach. Pearson.
+Russell, S., & Norvig, P. (2021). *Artificial Intelligence: A Modern Approach*. Pearson.
+
+LaValle, S. M. (2006). *Planning Algorithms*. Cambridge University Press.
+
+Thrun, S., Burgard, W., & Fox, D. (2005). *Probabilistic Robotics*. MIT Press.
+
+Choset, H. (2001). Coverage of Known Spaces: The Boustrophedon Cellular Decomposition. *Autonomous Robots*, 9(3), 247–253.
+
+Wikipedia. (2024). *Maze Solving Algorithm – Wall Follower Method*.  
+https://en.wikipedia.org/wiki/Maze_solving_algorithm
+
+Sedgewick, R., & Wayne, K. (2011). *Algorithms (4th Edition)*. Addison-Wesley.
 
 ---
 
