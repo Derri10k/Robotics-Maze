@@ -172,7 +172,7 @@ Open the VEXcode VR environment in a web browser. Select a maze playground and p
 
 ## References
 
-VEX Robotics. (2024). VEXcode VR Documentation. https://vr.vex.com/
+VEX Robotics. (2024). VEXcode VR Documentation. https://education.vex.com/stemlabs/cs/cs-level-1-vexcode-vr-python
 
 GeeksforGeeks. (2023). Breadth First Search Algorithm. https://www.geeksforgeeks.org/
 
@@ -184,6 +184,6 @@ Russell, S. & Norvig, P. Artificial Intelligence: A Modern Approach. Pearson.
 
 ## Author
 
-Student Name: [Your Name]  
-Module: [Module Name]  
-Submission Date: [Date]
+Student Name: Derrikson Apenteng 
+Module: Robotics
+Submission Date: 19/02/2026
