@@ -169,7 +169,7 @@ Breadth-First Search algorithm
 Open the VEXcode VR environment in a web browser. Select a maze playground and paste the Python code into the editor. Run the program and observe the robot exploring, mapping, solving the maze, and returning home.
 
 ---
-
+“I confirm that no AI tools were used in the preparation or completion of this assessment. This submission aligns with AITS 1 of the Artificial Intelligence Transparency Scale (AITS).”
 ## References
 
 VEX Robotics. (2024). VEXcode VR Documentation. https://education.vex.com/stemlabs/cs/cs-level-1-vexcode-vr-python
