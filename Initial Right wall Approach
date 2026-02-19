@@ -1,0 +1,98 @@
+#region VEXcode Generated Robot Configuration
+import math
+from vexcode_vr import *
+
+brain = Brain()
+
+drivetrain = Drivetrain("drivetrain", 0)
+pen = Pen("pen", 8)
+down_eye = EyeSensor("downEye", 5)
+front_distance = Distance("frontdistance", 6)
+location = Location("location", 9)
+#endregion VEXcode Generated Robot Configuration
+
+
+WALL_THRESHOLD_MM = 260
+STEP_MM = 250
+POS_EPS_MM = 5  # tolerance when comparing positions
+
+
+def go_to(x_target, y_target):
+    """Turn toward (x_target, y_target) and drive straight there."""
+    x_now = location.position(X, MM)
+    y_now = location.position(Y, MM)
+
+    dx = x_target - x_now
+    dy = y_target - y_now
+
+    # already there (within tolerance)
+    if abs(dx) < POS_EPS_MM and abs(dy) < POS_EPS_MM:
+        return
+
+    # Distance to travel
+    dist = math.sqrt(dx * dx + dy * dy)
+
+    # VEX VR heading: 0° points "north"/+Y, 90° points +X
+    # atan2 gives angle from +Y if we swap arguments: atan2(dx, dy)
+    heading_deg = math.degrees(math.atan2(dx, dy))
+    if heading_deg < 0:
+        heading_deg += 360
+
+    drivetrain.turn_to_heading(heading_deg, DEGREES)
+    drivetrain.drive_for(FORWARD, dist, MM)
+
+
+def main():
+    cords_list = []
+
+    drivetrain.set_drive_velocity(100, PERCENT)
+    drivetrain.set_turn_velocity(100, PERCENT)
+
+    pen.set_pen_width(THIN)
+    pen.set_pen_color(BLUE)
+    pen.move(DOWN)
+
+    # record starting point
+    cords_list.append([location.position(X, MM), location.position(Y, MM)])
+
+    while not down_eye.detect(RED):
+        if front_distance.get_distance(MM) > WALL_THRESHOLD_MM:
+            drivetrain.drive_for(FORWARD, STEP_MM, MM)
+            drivetrain.turn_for(RIGHT, 90, DEGREES)
+
+            # record new point
+            x_now = location.position(X, MM)
+            y_now = location.position(Y, MM)
+            cords_list.append([x_now, y_now])
+
+            # simple loop trimming:
+            # if we came back to a previously visited point, cut out the loop
+            # (keeps the earliest occurrence, removes the loop segment)
+            if len(cords_list) >= 4:
+                last = cords_list[-1]
+                for idx in range(len(cords_list) - 2):
+                    if abs(cords_list[idx][0] - last[0]) < POS_EPS_MM and abs(cords_list[idx][1] - last[1]) < POS_EPS_MM:
+                        # remove everything between idx and last (loop)
+                        cords_list = cords_list[: idx + 1]
+                        break
+
+            brain.clear()
+            brain.print(len(cords_list))
+
+        else:
+            drivetrain.turn_for(LEFT, 90, DEGREES)
+
+        wait(5, MSEC)
+
+    # Exit found — return along recorded route (reverse)
+    pen.set_pen_color(GREEN)
+
+    cords_list.reverse()
+    for x_t, y_t in cords_list:
+        go_to(x_t, y_t)
+
+    pen.move(UP)
+    stop_project()
+
+
+vr_thread(main)
