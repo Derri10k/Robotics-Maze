@@ -1,0 +1,267 @@
+from vexcode_vr import *          # VEX VR robot tools (movement, sensors, brain)
+from collections import deque     # Used for BFS queue (shortest path search)
+
+
+# Core devices we actually use
+brain = Brain()                   # Robot screen for printing output
+drivetrain = Drivetrain("drivetrain", 0)  # Controls movement
+pen = Pen("pen", 8)               # Draws the path on the floor
+pen.set_pen_width(THIN)
+
+
+down_eye = EyeSensor("downEye", 5)       # Detects RED goal tile
+front_distance = Distance("frontdistance", 6)  # Detects walls ahead
+
+
+def main():
+    drivetrain.set_drive_velocity(100, PERCENT)
+    drivetrain.set_turn_velocity(100, PERCENT)
+
+    pen.set_pen_color(BLACK)      # Black = exploring mode
+    pen.move(DOWN)
+
+    solve_maze()
+
+
+def solve_maze():
+    """
+    Explores maze → builds a map (graph) → finds shortest path using BFS →
+    drives to goal → returns to start.
+    """
+    graph = Graph()               # Stores maze map
+    robot = Robot()               # Tracks robot grid position
+
+    paths_from_start = 0
+    start_visited = 0
+
+    # Count how many exits exist at the starting tile
+    for i in range(0, 3):
+        if not robot.wall_or_exit():
+            paths_from_start += 1
+        robot.turn_right()
+    if not robot.wall_or_exit():
+        paths_from_start += 1
+
+    graph.add_node(robot.position.to_string())
+    end_node = None
+
+    # Explore maze using left-wall following until fully mapped
+    while paths_from_start > start_visited:
+        if robot.wall_or_exit():
+            robot.turn_right()
+        else:
+            robot.drive_forward()
+
+            if down_eye.detect(RED):        # Found goal tile
+                end_node = robot.position.to_string()
+
+            # Save movement into graph map
+            graph.add_node(robot.position.to_string())
+            graph.add_connection(robot.position.to_string(), robot.previous_position.to_string())
+
+            if robot.position.to_string() == "(0,0)":
+                start_visited += 1
+
+            robot.turn_left()
+
+    drivetrain.turn_to_heading(0, DEGREES)
+
+    # Print map evidence
+    brain.print(graph.graph)
+    brain.new_line()
+    graph.print_maze("(0,0)", end_node)
+
+    # Follow shortest path to goal, then back home
+    pen.set_pen_color(RED)
+    robot.travel_path(graph.shortest_path("(0,0)", end_node))
+
+    wait(1, SECONDS)
+
+    pen.set_pen_color(RED)
+    robot.travel_path(graph.shortest_path(end_node, "(0,0)"))
+
+
+def extract_coordinates(point):
+    # Converts "(x,y)" string into numeric x and y values
+    point = point.strip("()")
+    point_x_str, point_y_str = point.split(",")
+    return int(point_x_str), int(point_y_str)
+
+
+class Point:
+    # Simple coordinate holder
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+
+    def to_string(self):
+        return "(" + str(self.x) + "," + str(self.y) + ")"
+
+
+class Robot:
+    # Handles movement + keeps track of position in the maze grid
+    def __init__(self):
+        self.position = Point(0, 0)
+
+    def drive_forward(self, units=1):
+        drivetrain.drive_for(FORWARD, 250 * units, MM)
+        self.previous_position = self.position
+
+        # Update position based on robot heading
+        heading = drivetrain.heading(DEGREES)
+        if heading == 0:
+            self.position = Point(self.position.x, self.position.y + units)
+        elif heading == 90:
+            self.position = Point(self.position.x + units, self.position.y)
+        elif heading == 180:
+            self.position = Point(self.position.x, self.position.y - units)
+        elif heading == 270:
+            self.position = Point(self.position.x - units, self.position.y)
+
+    def turn_right(self):
+        drivetrain.turn_for(RIGHT, 90, DEGREES)
+
+    def turn_left(self):
+        drivetrain.turn_for(LEFT, 90, DEGREES)
+
+    def wall_or_exit(self):
+        # Returns True if blocked or unsafe to move forward
+        wall = front_distance.get_distance(MM) < 70
+        at_start = self.position.to_string() == "(0,0)"
+        at_end = down_eye.detect(RED)
+        void = front_distance.get_distance(MM) > 2900
+        return wall or (void and (at_start or at_end))
+
+    def travel_path(self, path):
+        # Drives robot along shortest path coordinates
+        if not path or path[0] != self.position.to_string():
+            brain.print("Not at start position")
+            return
+
+        forward_moves = 1
+        prev_heading = -1
+        current_heading = 0
+
+        prev_pos_x = self.position.x
+        prev_pos_y = self.position.y
+
+        for i in range(1, len(path)):
+            next_pos_x, next_pos_y = extract_coordinates(path[i])
+
+            # Determine which direction to move next
+            if next_pos_x > prev_pos_x:
+                current_heading = 90
+            elif next_pos_x < prev_pos_x:
+                current_heading = 270
+            elif next_pos_y > prev_pos_y:
+                current_heading = 0
+            elif next_pos_y < prev_pos_y:
+                current_heading = 180
+
+            # Combine straight moves to reduce turns
+            if current_heading == prev_heading:
+                forward_moves += 1
+            elif i == 1:
+                prev_heading = current_heading
+                drivetrain.turn_to_heading(current_heading, DEGREES)
+            else:
+                self.drive_forward(forward_moves)
+                drivetrain.turn_to_heading(current_heading, DEGREES)
+                forward_moves = 1
+                prev_heading = current_heading
+
+            if i == len(path) - 1:
+                self.drive_forward(forward_moves)
+
+            prev_pos_x = next_pos_x
+            prev_pos_y = next_pos_y
+
+
+class Graph:
+    # Stores maze as nodes (tiles) and connections (paths)
+    def __init__(self):
+        self.graph = {}
+
+    def add_connection(self, node1, node2):
+        if node2 not in self.graph[node1]:
+            self.graph[node1].append(node2)
+        if node1 not in self.graph[node2]:
+            self.graph[node2].append(node1)
+
+    def add_node(self, node):
+        if node not in self.graph:
+            self.graph[node] = []
+
+    def print_maze(self, start, end):
+        # Converts graph into a visual ASCII maze map
+        positions = set()
+        for node in self.graph.keys():
+            x, y = extract_coordinates(node)
+            positions.add((x, y))
+
+        min_x = min(x for x, y in positions)
+        max_x = max(x for x, y in positions)
+        min_y = min(y for x, y in positions)
+        max_y = max(y for x, y in positions)
+
+        width = (max_x - min_x + 1) * 2 + 1
+        height = (max_y - min_y + 1) * 2 + 1
+
+        maze = [["█" for i in range(width)] for i in range(height)]
+
+        for x, y in positions:
+            grid_x = (x - min_x) * 2 + 1
+            grid_y = (y - min_y) * 2 + 1
+            maze[grid_y][grid_x] = " "
+
+            if (x + 1, y) in positions and f"({x+1},{y})" in self.graph[f"({x},{y})"]:
+                maze[grid_y][grid_x + 1] = " "
+
+            if (x, y + 1) in positions and f"({x},{y+1})" in self.graph[f"({x},{y})"]:
+                maze[grid_y + 1][grid_x] = " "
+
+        def parse_coordinates(node):
+            x, y = extract_coordinates(node)
+            return (x - min_x) * 2 + 1, (y - min_y) * 2 + 1
+
+        start_x, start_y = parse_coordinates(start)
+        end_x, end_y = parse_coordinates(end)
+        maze[start_y][start_x] = "O"
+        maze[end_y][end_x] = "X"
+
+        for row in maze[::-1]:
+            brain.print("".join(row))
+            brain.new_line()
+
+    def shortest_path(self, start, end):
+        # BFS finds the shortest route between two nodes
+        graph = self.graph
+        visited = {node: False for node in graph}
+        visited[start] = True
+
+        predecessors = {node: None for node in graph}
+        queue = deque([start])
+
+        while queue:
+            current = queue.popleft()
+
+            for neighbour in graph[current]:
+                if not visited[neighbour]:
+                    visited[neighbour] = True
+                    predecessors[neighbour] = current
+                    queue.append(neighbour)
+
+                    if neighbour == end:
+                        break
+
+        path = []
+        at = end
+        while at is not None:
+            path.append(at)
+            at = predecessors[at]
+
+        path.reverse()
+        return path if path and path[0] == start else []
+
+
+vr_thread(main)
