@@ -141,7 +141,7 @@ This screenshot displays the visual representation of the maze generated after e
 
 ### Shortest Path and Return Journey
 
-This screenshot shows the robot’s movement paths. The blue line represents exploration, the green line shows the shortest route to the goal calculated using Breadth-First Search, and the red line shows the robot’s return journey to the starting position.
+This screenshot shows the robot’s movement paths. The black line represents exploration, the red line shows the shortest route to the goal calculated using Breadth-First Search, and the red line shows the robot’s return journey to the starting position.
 
 ![Shortest Path](shortest_path.png)
 
